@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0.0
+Type=Application
+Name=2048
+Comment=A number combining board game
+Exec=2048
+Icon=2048
+Categories=Game;
+Terminal=false
+StartupNotify=true

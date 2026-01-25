@@ -1,41 +1,52 @@
-# Prerequisites
+## Prerequisites ##
 *.d
 
-# Compiled Object files
+## Compiled Object Files ##
 *.slo
 *.lo
 *.o
 *.obj
 
-# Precompiled Headers
+## Precompiled Headers ##
 *.gch
 *.pch
 
-# Linker files
+## Linker Files ##
 *.ilk
 
-# Debugger Files
+## Debugger Files ##
 *.pdb
 
-# Compiled Dynamic libraries
+## Compiled Dynamic libraries ##
 *.so
 *.dylib
 *.dll
 
-# Fortran module files
+## Fortran Module Files ##
 *.mod
 *.smod
 
-# Compiled Static libraries
+## Compiled Static Libraries ##
 *.lai
 *.la
 *.a
 *.lib
 
-# Executables
+## Executables ##
 *.exe
 *.out
 *.app
 
-# debug information files
+## Debug information Files ##
 *.dwo
+
+## Build ##
+build/
+bin/
+
+## IDE ##
+.vscode/
+
+## Logging ##
+logs/
+*.log
