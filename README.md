@@ -52,7 +52,7 @@ Download any of the following releases that fit your platform. Extract and run t
 To build **2048** from source, install the following as they are all required.
 - **Qt 6.10+** or higher. Install Q6 from [qt.io](https://www.qt.io/development/download)
 - **C++ 20+** capabilities. Qt6 will come with the necessary compiler to build the project.
-- **CMake 3.30+** for building the project.
+- **CMake 3.16+** for building the project.
 - **Git** to clone the 2048 repository.
 ### 🔹 Clone the Repository ###
 ```bash
