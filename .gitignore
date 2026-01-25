@@ -50,3 +50,6 @@ bin/
 ## Logging ##
 logs/
 *.log
+
+## Other ##
+desktop.ini
