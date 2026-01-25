@@ -38,11 +38,28 @@ if(MINGW)
 endif(MINGW)
 
 ## Get the Qt Package ##
-option(QT_LOCAL_PATH "Path to Local Qt Compiler Installation" "")
-if(QT_LOCAL_PATH)
-    find_package(Qt6 REQUIRED COMPONENTS Widgets PATHS "${QT_LOCAL_PATH}" NO_DEFAULT_PATH)
+option(QT6_DIR "Path to Local Qt Compiler Installation" "")
+if(QT6_DIR)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets PATHS "${QT6_DIR}" NO_DEFAULT_PATH)
 else()
     find_package(Qt6 REQUIRED COMPONENTS Widgets)
+    if(NOT Qt6_FOUND)
+        message(FATAL_ERROR "Qt6 not found!
+
+        Please install Qt6 development libraries:
+
+        Windows:
+        Download from https://www.qt.io/download
+
+        macOS:
+        brew install qt6
+
+        Linux (Ubuntu/Debian):
+        sudo apt install qt6-base-dev qt6-tools-dev
+
+        Or set QT6_DIR to your Qt compiler-specific libraries directory:
+        cmake .. -DQT6_DIR=\"/path/to/your/Qt/package/6.10.x/compiler/\"")
+    endif()
 endif()
 
 

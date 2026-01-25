@@ -48,12 +48,22 @@ Download any of the following releases that fit your platform. Extract and run t
 
 
 ## 🛠️ Building From Source ##
-### 🔹 Install Project Dependencies ###
+### 🔹 Install Project Requirements ###
 To build **2048** from source, install the following as they are all required.
-- **Qt 6.10+** or higher. Install Q6 from [qt.io](https://www.qt.io/development/download)
+- **Qt 6.10+** or higher development libraries.
 - **C++ 20+** capabilities. Qt6 will come with the necessary compiler to build the project.
 - **CMake 3.16+** for building the project.
 - **Git** to clone the 2048 repository.
+### 🔹 Install Qt Development Libraries ###
+- **Windows:** Install Qt from [qt.io](https://www.qt.io/development/download)
+- **macOS:**
+    ```bash
+    brew install qt6
+    ```
+- **Linux:**
+    ```bash
+    sudo apt install qt6-base-dev qt6-tools-dev cmake build-essential
+    ```
 ### 🔹 Clone the Repository ###
 ```bash
 cd /path/to/your/desired/directory
@@ -66,16 +76,15 @@ mkdir build
 cd build
 ```
 ### 🔹 Build the Project Using CMake ###
-- Make sure to point to the package directory within your Qt installation.
 ```bash
-cmake .. -DQT_LOCAL_PATH="/path/to/your/Qt/package/6.10.x/compiler/"
+## Configure the Build ##
+cmake ..
 
-## For Debug Mode Configuration ##
+## Only If The Qt Package isn't Visisble in the Path and Configuration Fails, Point to It Manually ##
+cmake .. -DQT6_DIR="/path/to/your/Qt/package/6.10.x/compiler/"
+
+## Generate the Application ##
 cmake --build .
-
-## For Release Mode Configuration ##
-cd ..
-cmake --build build --config Release
 ```
 ### 🔹 Run the Application ###
 - The output binaries are generated in the `/bin` directory
