@@ -74,7 +74,7 @@ class _2048App : public QObject {
             /**
              * @brief Window size setting.
              */
-            QSize windowSize = {625, 800};
+            QSize windowSize = {685, 850};
 
             /**
              * @brief Window position settings

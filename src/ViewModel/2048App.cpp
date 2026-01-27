@@ -20,6 +20,11 @@
  * @param message The message text to be logged.
  */
 void debugLogHandler(QtMsgType type, const QMessageLogContext &context, const QString &message) {
+    // Ensure the logs Directory Exists //
+    QDir logDir("../logs");
+    if (!logDir.exists()) logDir.mkpath(".");
+
+    // Log the Message //
     QFile outFile("../logs/debug.log");
     if (outFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
         QTextStream ts(&outFile);
