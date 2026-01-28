@@ -74,6 +74,7 @@ file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/include/ViewModel/2048App.hpp"
     "${CMAKE_SOURCE_DIR}/include/Model/GameConfig.hpp"
     "${CMAKE_SOURCE_DIR}/include/Model/2048Engine.hpp"
+    "${CMAKE_SOURCE_DIR}/include/Model/2048Settings.hpp"
     "${CMAKE_SOURCE_DIR}/include/View/2048UI.hpp"
     "${CMAKE_SOURCE_DIR}/include/View/Components/GameBoard.hpp"
     "${CMAKE_SOURCE_DIR}/include/View/Components/Scoreboard.hpp"
@@ -86,6 +87,7 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/src/main.cpp"
     "${CMAKE_SOURCE_DIR}/src/ViewModel/2048App.cpp"
     "${CMAKE_SOURCE_DIR}/src/Model/2048Engine.cpp"
+    "${CMAKE_SOURCE_DIR}/src/Model/2048Settings.cpp"
     "${CMAKE_SOURCE_DIR}/src/View/2048UI.cpp"
     "${CMAKE_SOURCE_DIR}/src/View/Components/GameBoard.cpp"
     "${CMAKE_SOURCE_DIR}/src/View/Components/Scoreboard.cpp"
@@ -97,6 +99,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 ## Generate OS-Specific 2048 Application Executable ##
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+
+## Target Qt Resources Files ##
+target_sources(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/resources.qrc")
 
 ## Target Include Files ##
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/include")

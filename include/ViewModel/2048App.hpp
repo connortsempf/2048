@@ -11,6 +11,7 @@
 
 #pragma once
 #include <string>
+#include <algorithm>
 #include <QDateTime>
 #include <QDebug>
 #include <QTextStream>
@@ -20,6 +21,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QStandardPaths>
 #include <QFontDatabase>
 #include <QTimer>
 #include <QEvent>
@@ -31,6 +33,7 @@
 #include <QScreen>
 #include "Model/GameConfig.hpp"
 #include "Model/2048Engine.hpp"
+#include "Model/2048Settings.hpp"
 #include "View/2048UI.hpp"
 #include "View/Themes/Theme.hpp"
 
@@ -68,45 +71,24 @@ class _2048App : public QObject {
 
     private:
         /**
-         * @brief 2048 settings struct for persistent app data.
-         */
-        struct _2048Settings {
-            /**
-             * @brief Window size setting.
-             */
-            QSize windowSize = {685, 850};
-
-            /**
-             * @brief Window position settings
-             */
-            QPoint windowPosition = {-1, -1};
-
-            /**
-             * @brief Best score statistic setting.
-             */
-            unsigned int bestScore = 0;
-        };
-
-    private:
-        /**
          * @brief The current game score of the player.
          */
         unsigned int playerScore = 0;
 
         /**
-         * @brief The 2048 game logic manager for the application.
+         * @brief The 2048 application game logic manager.
          */
-        _2048Engine engine;
+        _2048Engine engineManager;
 
         /**
-         * @brief The 2048 UI for the application.
+         * @brief The 2048 application settings manager.
          */
-        _2048UI* ui;
+        _2048Settings settingsManager;
 
         /**
-         * @brief Cache of 2048 settings to track during runtime and save for persistent settings tracking.
+         * @brief The 2048 application UI manager.
          */
-        _2048Settings settings;
+        _2048UI* uiManager;
 
         /**
          * @brief Flag for if any game input will be acted upon.
@@ -120,14 +102,9 @@ class _2048App : public QObject {
         void loadFonts();
 
         /**
-         * @brief Load saved application settings.
+         * @brief Setup the application window.
          */
-        void loadSettings();
-
-        /**
-         * @brief Save user application to disk.
-         */
-        void saveSettings();
+        void setupWindow();
 
         /**
          * @brief Handles the arrow key or WASD gameplay combine attempt input.

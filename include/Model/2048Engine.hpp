@@ -38,13 +38,44 @@ class _2048Engine {
          * @brief A tile and its associated metadata for a given combine.
          */
         struct Tile {
+            /**
+             * @brief Whether the tile position is occupied.
+             */
             bool filled = false;
+
+            /**
+             * @brief The action performed on this tile during the move.
+             */
             TileAction action = TileAction::HELD;
+
+            /**
+             * @brief The tile's value before the move.
+             */
             unsigned int startValue = 0;
+
+            /**
+             * @brief The tile's row index before the move.
+             */
             unsigned int startRowIndex = 0;
+
+            /**
+             * @brief The tile's column index before the move.
+             */
             unsigned int startColumnIndex = 0;
+
+            /**
+             * @brief The tile's value after the move.
+             */
             unsigned int endValue = 0;
+
+            /**
+             * @brief The tile's row index after the move.
+             */
             unsigned int endRowIndex = 0;
+
+            /**
+             * @brief The tile's column index after the move.
+             */
             unsigned int endColumnIndex = 0;
         };
 

@@ -432,6 +432,12 @@ bool _2048Engine::detectGameOver() {
             if (i + 1 < tilesBoard.size() && tilesBoard[i][j].endValue == tilesBoard[i + 1][j].endValue) return false;
         }
     }
+    for (int i = 0; i < tilesBoard[tilesBoard.size() - 1].size() - 1; i++) {
+        if (tilesBoard[tilesBoard.size() - 1][i].endValue == tilesBoard[tilesBoard.size() - 1][i + 1].endValue) return false;
+    }
+    for (int i = 0; i < tilesBoard.size() - 1; i++) {
+        if (tilesBoard[i][tilesBoard.size() - 1].endValue == tilesBoard[i + 1][tilesBoard.size() - 1].endValue) return false;
+    }
 
     return true;
 }

@@ -47,9 +47,5 @@ bin/
 ## IDE ##
 .vscode/
 
-## Logging ##
-logs/
-*.log
-
 ## Other ##
 desktop.ini

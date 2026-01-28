@@ -20,17 +20,29 @@
  * @param message The message text to be logged.
  */
 void debugLogHandler(QtMsgType type, const QMessageLogContext &context, const QString &message) {
-    // Ensure the logs Directory Exists //
-    QDir logDir("../logs");
-    if (!logDir.exists()) logDir.mkpath(".");
+    static QFile* logFile = nullptr;
+    static QTextStream* logStream = nullptr;
 
-    // Log the Message //
-    QFile outFile("../logs/debug.log");
-    if (outFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
-        QTextStream ts(&outFile);
+    // Initialize on First Call //
+    if (!logFile) {
+        QString logPath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+        QDir logDir(logPath);
+
+        // Ensure the Directory Exists //
+        if (!logDir.exists()) logDir.mkpath(".");
+
+        QString logFilePath = logPath + "/debug.log";
+        logFile = new QFile(logFilePath);
+        if (logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+            logStream = new QTextStream(logFile);
+        }
+    }
+
+    // Write Message to Log //
+    if (logStream) {
         QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
-        ts << "[" << timestamp << "] " << message << "\n";
-        outFile.close();
+        *logStream << "[" << timestamp << "] " << message << "\n";
+        logStream->flush();
     }
 }
 
@@ -41,34 +53,15 @@ void debugLogHandler(QtMsgType type, const QMessageLogContext &context, const QS
  * @param parent The parent QWidget.
  */
 _2048App::_2048App(QObject *parent) : QObject(parent) {
-    // App Configurations //
     qApp->installEventFilter(this);
     qInstallMessageHandler(debugLogHandler);
-
-    // Load Application Assets //
     loadFonts();
-    loadSettings();
-
-    // Construct Window //
-    ui = new _2048UI();
-    QScreen* display = QGuiApplication::primaryScreen();
-    QRect displayGeometry = display->geometry();
-    if (settings.windowSize.width() < 685) settings.windowSize.setWidth(685);
-    else if (settings.windowSize.width() > displayGeometry.width()) settings.windowSize.setWidth(displayGeometry.width());
-    if (settings.windowSize.height() < 850) settings.windowSize.setHeight(850);
-    else if (settings.windowSize.height() > displayGeometry.height()) settings.windowSize.setWidth(displayGeometry.height());
-    if (settings.windowPosition.x() < 0 || settings.windowPosition.x() > displayGeometry.width()) settings.windowPosition.setX((displayGeometry.width() - settings.windowSize.width()) / 2);
-    if (settings.windowPosition.y() < 0 || settings.windowPosition.y() > displayGeometry.height()) settings.windowPosition.setY((displayGeometry.height() - settings.windowSize.height()) / 2);
-    ui->setGeometry(settings.windowPosition.x(), settings.windowPosition.y(), settings.windowSize.width(), settings.windowSize.height());
-    ui->setWindowTitle("2048");
-    ui->setWindowIcon(QIcon("../assets/textures/window-icon.png"));
-
-    // Connect UI Interaction Signals //
-    connect(ui, &_2048UI::newGameRequested, this, &_2048App::handleNewGameRequestInput);
-
-    // Configure Default Start State for Application //
-    ui->setBestScore(settings.bestScore);
-    ui->show();
+    settingsManager.loadSettings();
+    setupWindow();
+    connect(uiManager, &_2048UI::newGameRequested, this, &_2048App::handleNewGameRequestInput);
+    uiManager->setBestScore(settingsManager.getSettings().bestScore);
+    if (settingsManager.getSettings().isWindowMaximized) uiManager->showMaximized();
+    else uiManager->show();
     QTimer::singleShot(800, this, [this]() { handleNewGameRequestInput(); });
 }
 
@@ -92,27 +85,32 @@ bool _2048App::eventFilter(QObject* obj, QEvent* event) {
 
     // Handle Window Resize Events //
     else if (event->type() == QEvent::Resize) {
-        if (obj == ui) {
-            QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
-            settings.windowSize.setWidth(resizeEvent->size().width());
-            settings.windowSize.setHeight(resizeEvent->size().height());
+        if (obj == uiManager) {
+            if (!uiManager->isMaximized()) {
+                QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
+                settingsManager.getSettings().windowSize.setWidth(resizeEvent->size().width());
+                settingsManager.getSettings().windowSize.setHeight(resizeEvent->size().height());
+            }
         }
     }
 
     // Handle Window Move Events //
     else if (event->type() == QEvent::Move) {
-        if (obj == ui) {
-            QMoveEvent* moveEvent = static_cast<QMoveEvent*>(event);
-            settings.windowPosition.setX(moveEvent->pos().x());
-            settings.windowPosition.setY(moveEvent->pos().y());
+        if (obj == uiManager) {
+            if (!uiManager->isMaximized()) {
+                QMoveEvent* moveEvent = static_cast<QMoveEvent*>(event);
+                settingsManager.getSettings().windowPosition.setX(moveEvent->pos().x());
+                settingsManager.getSettings().windowPosition.setY(moveEvent->pos().y());
+            }
         }
     }
 
     // Handle Window Close Events //
     else if (event->type() == QEvent::Close) {
-        if (obj == ui) {
+        if (obj == uiManager) {
             QCloseEvent* closeEvent = static_cast<QCloseEvent*>(event);
-            saveSettings();
+            settingsManager.getSettings().isWindowMaximized = uiManager->isMaximized();
+            settingsManager.saveSettings();
         }
     }
 
@@ -126,107 +124,65 @@ bool _2048App::eventFilter(QObject* obj, QEvent* event) {
  */
 void _2048App::loadFonts() {
     int fontID;
-    QString fontFamily;
     std::vector<QString> fontPaths = {
-        "../assets/fonts/ClearSans-Regular-Normal.ttf",
-        "../assets/fonts/ClearSans-Regular-Medium.ttf",
-        "../assets/fonts/ClearSans-Regular-Bold.ttf"
+        ":/fonts/assets/fonts/ClearSans-Regular-Normal.ttf",
+        ":/fonts/assets/fonts/ClearSans-Regular-Medium.ttf",
+        ":/fonts/assets/fonts/ClearSans-Regular-Bold.ttf"
     };
 
     for (const auto& fontPath : fontPaths) {
         fontID = QFontDatabase::addApplicationFont(fontPath);
-        if (fontID == -1) qWarning() << "Failed to Load Font" << fontPath;
-        fontFamily = QFontDatabase::applicationFontFamilies(fontID).at(0);
+        if (fontID == -1) {
+            qWarning() << "Failed to Load Font:" << fontPath;
+            continue;
+        }
+
+        QStringList families = QFontDatabase::applicationFontFamilies(fontID);
+        if (!families.isEmpty()) {
+            QString fontFamily = families.at(0);
+            qDebug() << "Loaded Font Family:" << fontFamily;
+        }
     }
 }
 
 
 /**
- * @brief Load saved application settings.
+ * @brief Setup the application window.
  */
-void _2048App::loadSettings() {
-    QString userSettingsFilePath = "../assets/settings/settings.json";
-    QFile userSettingsFile(userSettingsFilePath);
+void _2048App::setupWindow() {
+    // Get Display and Settings Information //
+    QScreen* display = QGuiApplication::primaryScreen();
+    QRect displayGeometry = display->geometry();
+    _2048Settings::Settings& settings = settingsManager.getSettings();
+    const _2048Settings::Settings& defaultSettings = settingsManager.getDefaultSettings();
 
-    if (!userSettingsFile.open(QIODevice::ReadOnly)) {
-        qWarning() << "Could not open settings file for reading:" << userSettingsFilePath;
-        return;
-    }
-    QByteArray data = userSettingsFile.readAll();
-    userSettingsFile.close();
-    QJsonDocument doc = QJsonDocument::fromJson(data);
+    if (!settings.isWindowMaximized) {
+        // Clamp the Window Size //
+        settings.windowSize.setWidth(std::clamp(settings.windowSize.width(), defaultSettings.windowSize.width(), displayGeometry.width()));
+        settings.windowSize.setHeight(std::clamp(settings.windowSize.height(), defaultSettings.windowSize.height(), displayGeometry.height()));
 
-    if (!doc.isObject()) {
-        qWarning() << "Invalid JSON format";
-        return;
-    }
-    QJsonObject json = doc.object();
-
-    // Window Size //
-    if (json.contains("window-size") && json["window-size"].isArray()) {
-        QJsonArray sizeArray = json["window-size"].toArray();
-        if (sizeArray.size() == 2) {
-            settings.windowSize = QSize(sizeArray[0].toInt(), sizeArray[1].toInt());
+        // First check -- Is Window Completely Off-Screen //
+        if (!displayGeometry.intersects(QRect(settings.windowPosition, settings.windowSize))) {
+            settings.windowPosition.setX((displayGeometry.width() - settings.windowSize.width()) / 2);
+            settings.windowPosition.setY((displayGeometry.height() - settings.windowSize.height()) / 2);
+        }
+        // Second Check -- Ensure Window is Fully Visible and Not Cut Off at Edges //
+        else {
+            // Window X-Position //
+            if (settings.windowPosition.x() < 0 || settings.windowPosition.x() + settings.windowSize.width() > displayGeometry.width()) {
+                settings.windowPosition.setX((displayGeometry.width() - settings.windowSize.width()) / 2);
+            }
+            // Window Y-Position //
+            if (settings.windowPosition.y() < 0 || settings.windowPosition.y() + settings.windowSize.height() > displayGeometry.height()) {
+                settings.windowPosition.setY((displayGeometry.height() - settings.windowSize.height()) / 2);
+            }
         }
     }
 
-    // Window Position //
-    if (json.contains("window-position") && !json["window-position"].isNull() && json["window-position"].isArray()) {
-        QJsonArray posArray = json["window-position"].toArray();
-        if (posArray.size() == 2) {
-            settings.windowPosition = QPoint(posArray[0].toInt(), posArray[1].toInt());
-        }
-    }   else {
-        settings.windowPosition = QPoint(-1, -1);
-    }
-
-    // Best Score Statistic //
-    settings.bestScore = json["best-score"].toInt();
-}
-
-
-/**
- * @brief Save user application to disk.
- */
-void _2048App::saveSettings() {
-    QJsonObject json;
-    QString userSettingsFilePath = "../assets/settings/settings.json";
-
-    // Window Size //
-    QJsonArray windowSizeArray;
-    windowSizeArray.append(settings.windowSize.width());
-    windowSizeArray.append(settings.windowSize.height());
-    json["window-size"] = windowSizeArray;
-
-    // Window Position (Null if Invalid) //
-    if (settings.windowPosition.isNull()) {
-        json["window-position"] = QJsonValue::Null;
-    }   else {
-        QJsonArray windowPosArray;
-        windowPosArray.append(settings.windowPosition.x());
-        windowPosArray.append(settings.windowPosition.y());
-        json["window-position"] = windowPosArray;
-    }
-
-    // Best Score Statistic //
-    json["best-score"] = static_cast<int>(settings.bestScore);
-
-    // Create Directory if it Doesn't Exist //
-    QFileInfo fileInfo(userSettingsFilePath);
-    QDir dir = fileInfo.absoluteDir();
-    if (!dir.exists()) {
-        dir.mkpath(".");
-    }
-
-    // Write to User Settings to File //
-    QFile file(userSettingsFilePath);
-    if (!file.open(QIODevice::WriteOnly)) {
-        qWarning() << "Could not open settings file for writing:" << userSettingsFilePath;
-        return;
-    }
-    QJsonDocument doc(json);
-    file.write(doc.toJson(QJsonDocument::Indented));
-    file.close();
+    // Setup the Window and its UI //
+    uiManager = new _2048UI();
+    uiManager->setGeometry(settings.windowPosition.x(), settings.windowPosition.y(), settings.windowSize.width(), settings.windowSize.height());
+    uiManager->setWindowTitle("2048");
 }
 
 
@@ -242,16 +198,16 @@ void _2048App::handleCombineInput(QKeyEvent* keyEvent) {
     else if (keyEvent->key() == Qt::Key_Up)     combineDirection = _2048Engine::CombineDirection::UP;
     else if (keyEvent->key() == Qt::Key_Down)   combineDirection = _2048Engine::CombineDirection::DOWN;
 
-    _2048Engine::CombineResult combineResult = engine.attemptCombine(combineDirection);
+    _2048Engine::CombineResult combineResult = engineManager.attemptCombine(combineDirection);
     if (!combineResult.tilesMoved) return;
     if (combineResult.gameOver) acceptingGameInput = false;
     playerScore += combineResult.combineScore;
-    if (playerScore > settings.bestScore) {
-        settings.bestScore = playerScore;
-        ui->setBestScore(playerScore);
+    if (playerScore > settingsManager.getSettings().bestScore) {
+        settingsManager.getSettings().bestScore = playerScore;
+        uiManager->setBestScore(playerScore);
     }
-    if (combineResult.combineScore > 0) ui->addToCurrentScore(combineResult.combineScore);
-    ui->updateBoard(combineResult);
+    if (combineResult.combineScore > 0) uiManager->addToCurrentScore(combineResult.combineScore);
+    uiManager->updateBoard(combineResult);
 }
 
 
@@ -260,7 +216,7 @@ void _2048App::handleCombineInput(QKeyEvent* keyEvent) {
  */
 void _2048App::handleNewGameRequestInput() {
     acceptingGameInput = true;
-    ui->reset();
-    _2048Engine::CombineResult combineResult = engine.startNewGame();
-    ui->updateBoard(combineResult);
+    uiManager->reset();
+    _2048Engine::CombineResult combineResult = engineManager.startNewGame();
+    uiManager->updateBoard(combineResult);
 }
