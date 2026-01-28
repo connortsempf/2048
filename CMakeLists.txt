@@ -140,8 +140,8 @@ if(APPLE)
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
         MACOSX_BUNDLE_ICON_FILE "2048.icns"
     )
-    set_source_files_properties("${CMAKE_SOURCE_DIR}/resources/macOS/2048.icns"
-        PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    set_source_files_properties("${CMAKE_SOURCE_DIR}/platform/macOS/2048.icns" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    # target_sources(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/resources/macOS/2048.icns")
 endif()
 
 ## Linux Application Build ##
