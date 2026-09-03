@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/fonts">
+        <file>assets/fonts/ClearSans-Regular-Normal.ttf</file>
+        <file>assets/fonts/ClearSans-Regular-Medium.ttf</file>
+        <file>assets/fonts/ClearSans-Regular-Bold.ttf</file>
+    </qresource>
+    <qresource prefix="/images">
+        <file>assets/images/logo-512.png</file>
+        <file>assets/images/logo-32.png</file>
+    </qresource>
+</RCC>
