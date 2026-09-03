@@ -7,11 +7,8 @@
 <br>
 
 
-## 🧰 Installation From Release ##
-Download any of the following releases that fit your platform. Extract and run the executable.
-- **Windows:** ``
-- **macOS:** ``
-- **Linux:** ``
+## 🧰 Installation From Release Build ##
+Build from source and package for installation for **Windows**, **macOS**, and **Linux** using `CMake` and `CPack`. Then execute the installer to integrate the program to your device. Otherwise, if full installation is not desired, the built executables can be run on their own and you can play 2048 as is.
 
 
 ---
@@ -53,6 +50,9 @@ To build **2048** from source, install the following as they are all required.
 - **Qt 6.10+** or higher development libraries.
 - **C++ 20+** capabilities. Qt6 will come with the necessary compiler to build the project.
 - **CMake 3.16+** for building the project.
+- **CPack 3.16+** for packaging the project. (Distributed with CMake)
+- **WiX (Windows only)** for Windows .msi packaging of the project.
+- **NSIS (Windows only)** for Windows .exe packaging of the project.
 - **Git** to clone the 2048 repository.
 ### 🔹 Install Qt Development Libraries ###
 - **Windows:** Install Qt from [qt.io](https://www.qt.io/development/download)
@@ -85,10 +85,15 @@ cmake .. -DQT6_DIR="/path/to/your/Qt/package/6.10.x/compiler/"
 
 ## Generate the Application ##
 cmake --build .
+
+## Package the Application ##
+cpack
 ```
-### 🔹 Run the Application ###
+### 🔹 Run the Application or Perform Official Installation on your Machine ###
 - The output binaries are generated in the `/bin` directory
-- Find and run the executable from there
+- If desired, find and run the executable from there
+- The packaged installers are generated in the `/packages` directory
+- If official installation to your machine is desired, run the installer
 
 
 ---
