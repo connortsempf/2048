@@ -13,48 +13,13 @@
 
 
 /**
- * @brief Handle logging for debugging throughout the application.
- *
- * @param type The type of message being logged (Debug, Warning, Critical, Fatal, Info).
- * @param context The context information including file, line, and function where the message originated.
- * @param message The message text to be logged.
- */
-void debugLogHandler(QtMsgType type, const QMessageLogContext &context, const QString &message) {
-    static QFile* logFile = nullptr;
-    static QTextStream* logStream = nullptr;
-
-    // Initialize on First Call //
-    if (!logFile) {
-        QString logPath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
-        QDir logDir(logPath);
-
-        // Ensure the Directory Exists //
-        if (!logDir.exists()) logDir.mkpath(".");
-
-        QString logFilePath = logPath + "/debug.log";
-        logFile = new QFile(logFilePath);
-        if (logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
-            logStream = new QTextStream(logFile);
-        }
-    }
-
-    // Write Message to Log //
-    if (logStream) {
-        QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
-        *logStream << "[" << timestamp << "] " << message << "\n";
-        logStream->flush();
-    }
-}
-
-
-/**
  * @brief Constructs a _2048App object.
  *
  * @param parent The parent QWidget.
  */
 _2048App::_2048App(QObject *parent) : QObject(parent) {
     qApp->installEventFilter(this);
-    qInstallMessageHandler(debugLogHandler);
+    qInstallMessageHandler(&_2048Logging::messageLoggingHandler);
     loadFonts();
     settingsManager.loadSettings();
     setupWindow();
@@ -63,6 +28,7 @@ _2048App::_2048App(QObject *parent) : QObject(parent) {
     if (settingsManager.getSettings().isWindowMaximized) uiManager->showMaximized();
     else uiManager->show();
     QTimer::singleShot(800, this, [this]() { handleNewGameRequestInput(); });
+    qInfo() << "2048 Application Initiated";
 }
 
 
@@ -111,6 +77,7 @@ bool _2048App::eventFilter(QObject* obj, QEvent* event) {
             QCloseEvent* closeEvent = static_cast<QCloseEvent*>(event);
             settingsManager.getSettings().isWindowMaximized = uiManager->isMaximized();
             settingsManager.saveSettings();
+            qInfo() << "2048 Application Terminated";
         }
     }
 
@@ -133,14 +100,12 @@ void _2048App::loadFonts() {
     for (const auto& fontPath : fontPaths) {
         fontID = QFontDatabase::addApplicationFont(fontPath);
         if (fontID == -1) {
-            qWarning() << "Failed to Load Font:" << fontPath;
             continue;
         }
 
         QStringList families = QFontDatabase::applicationFontFamilies(fontID);
         if (!families.isEmpty()) {
             QString fontFamily = families.at(0);
-            qDebug() << "Loaded Font Family:" << fontFamily;
         }
     }
 }
@@ -150,36 +115,29 @@ void _2048App::loadFonts() {
  * @brief Setup the application window.
  */
 void _2048App::setupWindow() {
-    // Get Display and Settings Information //
     QScreen* display = QGuiApplication::primaryScreen();
     QRect displayGeometry = display->geometry();
     _2048Settings::Settings& settings = settingsManager.getSettings();
     const _2048Settings::Settings& defaultSettings = settingsManager.getDefaultSettings();
 
     if (!settings.isWindowMaximized) {
-        // Clamp the Window Size //
         settings.windowSize.setWidth(std::clamp(settings.windowSize.width(), defaultSettings.windowSize.width(), displayGeometry.width()));
         settings.windowSize.setHeight(std::clamp(settings.windowSize.height(), defaultSettings.windowSize.height(), displayGeometry.height()));
 
-        // First check -- Is Window Completely Off-Screen //
         if (!displayGeometry.intersects(QRect(settings.windowPosition, settings.windowSize))) {
             settings.windowPosition.setX((displayGeometry.width() - settings.windowSize.width()) / 2);
             settings.windowPosition.setY((displayGeometry.height() - settings.windowSize.height()) / 2);
         }
-        // Second Check -- Ensure Window is Fully Visible and Not Cut Off at Edges //
         else {
-            // Window X-Position //
             if (settings.windowPosition.x() < 0 || settings.windowPosition.x() + settings.windowSize.width() > displayGeometry.width()) {
                 settings.windowPosition.setX((displayGeometry.width() - settings.windowSize.width()) / 2);
             }
-            // Window Y-Position //
             if (settings.windowPosition.y() < 0 || settings.windowPosition.y() + settings.windowSize.height() > displayGeometry.height()) {
                 settings.windowPosition.setY((displayGeometry.height() - settings.windowSize.height()) / 2);
             }
         }
     }
 
-    // Setup the Window and its UI //
     uiManager = new _2048UI();
     uiManager->setGeometry(settings.windowPosition.x(), settings.windowPosition.y(), settings.windowSize.width(), settings.windowSize.height());
     uiManager->setWindowTitle("2048");
@@ -200,8 +158,11 @@ void _2048App::handleCombineInput(QKeyEvent* keyEvent) {
 
     _2048Engine::CombineResult combineResult = engineManager.attemptCombine(combineDirection);
     if (!combineResult.tilesMoved) return;
-    if (combineResult.gameOver) acceptingGameInput = false;
     playerScore += combineResult.combineScore;
+    if (combineResult.gameOver) {
+        acceptingGameInput = false;
+        qInfo() << "2048 Game Finished with Score of " << playerScore;
+    }
     if (playerScore > settingsManager.getSettings().bestScore) {
         settingsManager.getSettings().bestScore = playerScore;
         uiManager->setBestScore(playerScore);
@@ -219,4 +180,5 @@ void _2048App::handleNewGameRequestInput() {
     uiManager->reset();
     _2048Engine::CombineResult combineResult = engineManager.startNewGame();
     uiManager->updateBoard(combineResult);
+    qInfo() << "New 2048 Game Started";
 }

@@ -34,18 +34,9 @@
 #include "Model/GameConfig.hpp"
 #include "Model/2048Engine.hpp"
 #include "Model/2048Settings.hpp"
+#include "Model/2048Logging.hpp"
 #include "View/2048UI.hpp"
 #include "View/Themes/Theme.hpp"
-
-
-/**
- * @brief Handle logging for debugging throughout the application.
- *
- * @param type The type of message being logged (Debug, Warning, Critical, Fatal, Info).
- * @param context The context information including file, line, and function where the message originated.
- * @param message The message text to be logged.
- */
-void debugLogHandler(QtMsgType type, const QMessageLogContext &context, const QString &message);
 
 
 /**
@@ -89,6 +80,11 @@ class _2048App : public QObject {
          * @brief The 2048 application UI manager.
          */
         _2048UI* uiManager;
+
+        /**
+         * @brief The 2048 application logging manager.
+         */
+        _2048Logging loggingManager;
 
         /**
          * @brief Flag for if any game input will be acted upon.
