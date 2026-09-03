@@ -5,8 +5,8 @@
 ## CMake Version Requirement ##
 cmake_minimum_required(VERSION 3.16)
 
-## Project Author and Creator ##
-set(CPACK_PACKAGE_VENDOR "Connor Sempf")
+## Project Author and Developer ##
+set(AUTHOR "Connor Sempf")
 
 ## Project Definition ##
 project(2048 VERSION 1.0.0 LANGUAGES CXX)
@@ -68,6 +68,34 @@ endif()
 
 
 
+#########################
+#### Configure Build ####
+#########################
+
+## Default to Release Mode Configuration ##
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+## Force Debug or Release Mode Configurations ##
+if(CMAKE_BUILD_TYPE AND
+   NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND
+   NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    message(FATAL_ERROR
+        "Invalid build type: ${CMAKE_BUILD_TYPE}.
+
+        Use the Debug or Release configuration.
+
+        \"cmake -DCMAKE_BUILD_TYPE=Debug\"
+        or
+        \"cmake -DCMAKE_BUILD_TYPE=Release\"
+        "
+    )
+endif()
+
+
+
+
 ######################
 #### Build Source ####
 ######################
@@ -78,6 +106,7 @@ file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/include/Model/GameConfig.hpp"
     "${CMAKE_SOURCE_DIR}/include/Model/2048Engine.hpp"
     "${CMAKE_SOURCE_DIR}/include/Model/2048Settings.hpp"
+    "${CMAKE_SOURCE_DIR}/include/Model/2048Logging.hpp"
     "${CMAKE_SOURCE_DIR}/include/View/2048UI.hpp"
     "${CMAKE_SOURCE_DIR}/include/View/Components/GameBoard.hpp"
     "${CMAKE_SOURCE_DIR}/include/View/Components/Scoreboard.hpp"
@@ -91,6 +120,7 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/src/ViewModel/2048App.cpp"
     "${CMAKE_SOURCE_DIR}/src/Model/2048Engine.cpp"
     "${CMAKE_SOURCE_DIR}/src/Model/2048Settings.cpp"
+    "${CMAKE_SOURCE_DIR}/src/Model/2048Logging.cpp"
     "${CMAKE_SOURCE_DIR}/src/View/2048UI.cpp"
     "${CMAKE_SOURCE_DIR}/src/View/Components/GameBoard.cpp"
     "${CMAKE_SOURCE_DIR}/src/View/Components/Scoreboard.cpp"
@@ -100,13 +130,14 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
 ## Generate Binary Files in Bin Directory ##
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
-# Set the Output Binary Files Directory for Multi-Config Outputs ##
-foreach(CONFIG Release Debug RelWithDebInfo MinSizeRel)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG} "${CMAKE_SOURCE_DIR}/bin/${CONFIG}")
-endforeach()
-
 ## Generate OS-Specific 2048 Application Executable ##
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+
+## Tell the Application the Build Configuration ##
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:DEBUG>
+    $<$<CONFIG:Release>:RELEASE>
+)
 
 ## Target Qt Resources Files ##
 target_sources(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/resources.qrc")
@@ -121,7 +152,7 @@ target_link_libraries(${PROJECT_NAME} Qt6::Core Qt6::Gui Qt6::Widgets)
 if(WIN32)
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt REQUIRED)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND "${WINDEPLOYQT_EXECUTABLE}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}.exe"
+        COMMAND "${WINDEPLOYQT_EXECUTABLE}" "$<TARGET_FILE:${PROJECT_NAME}>"
         COMMENT "Deploying Qt Dependencies to Output Directory..."
     )
 endif()
@@ -138,6 +169,12 @@ if(WIN32)
     target_sources(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/platform/windows/${PROJECT_NAME}.rc")
     set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE ON)
     install(TARGETS ${PROJECT_NAME} DESTINATION .)
+    install(CODE "
+        execute_process(
+            COMMAND \"${WINDEPLOYQT_EXECUTABLE}\"
+                    \"\${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.exe\"
+        )
+    ")
 endif()
 
 ## macOS Application Build ##
@@ -168,45 +205,53 @@ endif()
 #### Package for Installation ####
 ##################################
 
-## Set Application Metadata ##
+## Set Packaging Configurations ##
+set(CPACK_PACKAGE_CONTACT "${AUTHOR} connor.sempf@gmail.com")
 set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-set(CPACK_PACKAGE_VENDOR "${CPACK_PACKAGE_VENDOR}")
-set(CPACK_WIX_PRODUCT_MANUFACTURER "${CPACK_PACKAGE_VENDOR}")
+set(CPACK_PACKAGE_DIRECTORY "${CMAKE_SOURCE_DIR}/packages")
+set(CPACK_PACKAGE_VENDOR "${AUTHOR}")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A number combining board game")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/EULA.txt")
 set(CPACK_VERBATIM_VARIABLES YES)
 
 ## Windows Packaging ##
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set(CPACK_GENERATOR "NSIS")
-
+    set(CPACK_GENERATOR "WIX;NSIS")
+    ## MSI (WiX) Installation Specifications ##
+    set(CPACK_WIX_UPGRADE_GUID "122be743-4900-e391-1f1d-fcb190adfd20")
+    set(CPACK_WIX_PROGRAM_MENU_FOLDER "${PROJECT_NAME}")
+    set(CPACK_WIX_PRODUCT_ICON "${CMAKE_SOURCE_DIR}/platform/windows/${PROJECT_NAME}.ico")
+    set(CPACK_WIX_UI_DIALOG "${CMAKE_SOURCE_DIR}/platform/windows/${PROJECT_NAME}-Dialog.bmp")
+    set(CPACK_WIX_UI_BANNER "${CMAKE_SOURCE_DIR}/platform/windows/${PROJECT_NAME}-Banner.bmp")
+    set_property(INSTALL "$<TARGET_FILE_NAME:${PROJECT_NAME}>" PROPERTY CPACK_START_MENU_SHORTCUTS "${PROJECT_NAME}")
+    set_property(INSTALL "$<TARGET_FILE_NAME:${PROJECT_NAME}>" PROPERTY CPACK_DESKTOP_SHORTCUTS "${PROJECT_NAME}")
     ## EXE (NSIS) Installation Specifications ##
+    set(CPACK_NSIS_MODIFY_PATH OFF)
     set(CPACK_NSIS_PACKAGE_NAME "${PROJECT_NAME}")
-    set(CPACK_NSIS_UNINSTALL_NAME "Uninstall_${PROJECT_NAME}")
+    set(CPACK_NSIS_DISPLAY_NAME "${PROJECT_NAME}")
+    set(CPACK_NSIS_UNINSTALL_NAME "Uninstall-${PROJECT_NAME}")
     set(CPACK_NSIS_WELCOME_TITLE "Welcome to ${PROJECT_NAME} Installation!")
     set(CPACK_NSIS_FINISH_TITLE "${PROJECT_NAME} Installation Complete!")
+    set(CPACK_NSIS_INSTALLED_ICON_NAME "${PROJECT_NAME}.exe")
     set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/platform/windows/${PROJECT_NAME}.ico")
     set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/platform/windows/${PROJECT_NAME}.ico")
+    set(CPACK_NSIS_MUI_WELCOMEFINISHPAGE_BITMAP "${CMAKE_SOURCE_DIR}\\platform\\windows\\${PROJECT_NAME}-Dialog-Welcome.bmp")
+    set(CPACK_NSIS_MUI_UNWELCOMEFINISHPAGE_BITMAP "${CMAKE_SOURCE_DIR}\\platform\\windows\\${PROJECT_NAME}-Dialog-Unwelcome.bmp")
     set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\${PROJECT_NAME}.lnk' '$INSTDIR\\\\${PROJECT_NAME}.exe'")
     set(CPACK_NSIS_DELETE_ICONS_EXTRA "Delete '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\${PROJECT_NAME}.lnk'")
     set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
         "Delete '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Uninstall.lnk'
-        CreateShortCut '$DESKTOP\\\\${PROJECT_NAME}.lnk' '$INSTDIR\\\\${PROJECT_NAME}.exe'"
-    )
+        CreateShortCut '$DESKTOP\\\\${PROJECT_NAME}.lnk' '$INSTDIR\\\\${PROJECT_NAME}.exe'")
     set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
         "Delete '$DESKTOP\\\\${PROJECT_NAME}.lnk'
         Delete '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\${PROJECT_NAME}.lnk'
-        RMDir '$SMPROGRAMS\\\\$STARTMENU_FOLDER'"
-    )
-    set(CPACK_NSIS_MODIFY_PATH OFF)
-    set(CPACK_NSIS_INSTALLED_ICON_NAME "${PROJECT_NAME}.exe")
+        RMDir '$SMPROGRAMS\\\\$STARTMENU_FOLDER'")
 endif()
 
 ## macOS Packaging ##
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(CPACK_GENERATOR "DragNDrop")
-
     # DMG Installation Specifications ##
     set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/platform/macOS/${PROJECT_NAME}.icns")
     set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_SOURCE_DIR}/platform/macOS/${PROJECT_NAME}.png")
@@ -216,13 +261,10 @@ endif()
 ## Linux Packaging ##
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CPACK_GENERATOR "DEB;RPM")
-
     ## DEB Installation Specifications ##
-    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Connor Sempf <connor.sempf@gmail.com>")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6core6, libqt6gui6, libqt6widgets6")
     set(CPACK_DEBIAN_PACKAGE_SECTION "utilities")
     set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-
     ## RPM Installation Specifications ##
     set(CPACK_RPM_PACKAGE_LICENSE "MIT")
     set(CPACK_RPM_PACKAGE_REQUIRES "qt6-qtbase >= 6.0")
