@@ -1,6 +1,6 @@
 END USER LICENSE AGREEMENT
 
-2048 - Version 1.0
+2048 - Version 1.0.0
 
 GRANT OF LICENSE
 This license grants you the right to use 2048 for any purpose.
