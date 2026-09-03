@@ -40,14 +40,12 @@ void _2048Settings::loadSettings() {
 
     // If Settings Don't Exist, Just use the Struct Default Settings //
     if (!settingsFile.exists()) {
-        qDebug() << "Settings file not found, creating with defaults:" << settingsFilePath;
         saveSettings();
         return;
     }
 
     // Open and Read Settings //
     if (!settingsFile.open(QIODevice::ReadOnly)) {
-        qWarning() << "Could not open settings file for reading:" << settingsFilePath;
         return;
     }
 
@@ -58,12 +56,10 @@ void _2048Settings::loadSettings() {
     QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
 
     if (parseError.error != QJsonParseError::NoError) {
-        qWarning() << "JSON parse error:" << parseError.errorString();
         return;
     }
 
     if (!doc.isObject()) {
-        qWarning() << "Invalid JSON format: root is not an object";
         return;
     }
 
@@ -97,8 +93,6 @@ void _2048Settings::loadSettings() {
     if (json.contains("best-score")) {
         settings.bestScore = json["best-score"].toInt();
     }
-
-    qDebug() << "Settings loaded successfully";
 }
 
 
@@ -122,9 +116,6 @@ void _2048Settings::saveSettings() {
     if (file.open(QIODevice::WriteOnly)) {
         file.write(doc.toJson(QJsonDocument::Indented));
         file.close();
-        qDebug() << "Settings saved successfully";
-    }   else {
-        qWarning() << "Failed to save settings:" << settingsFilePath;
     }
 }
 
