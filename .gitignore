@@ -44,6 +44,12 @@
 build/
 bin/
 
+## Pacakging ##
+/packages
+
+## Logging ##
+logs/
+
 ## IDE ##
 .vscode/
 
